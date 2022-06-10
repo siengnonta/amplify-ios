@@ -14,6 +14,8 @@ actor AnalyticsClient: InternalPinpointClient {
     unowned let context: PinpointContext
     private lazy var globalAttributes: PinpointEventAttributes = [:]
     private lazy var globalMetrics: PinpointEventMetrics = [:]
+    // TODO: review this type
+    private lazy var globalEventSourceAttributes: [String: Any] = [:]
     private lazy var eventTypeAttributes: [String: PinpointEventAttributes] = [:]
     private lazy var eventTypeMetrics: [String: PinpointEventMetrics] = [:]
     
@@ -56,6 +58,13 @@ actor AnalyticsClient: InternalPinpointClient {
         eventTypeMetrics[eventType]?[key] = metric
     }
     
+    func setGlobalEventSourceAttributes(_ attributes: [String: Any]) {
+        globalEventSourceAttributes = attributes
+        
+        // TODO: update event 
+        // [eventRecorder updateSessionStartWithEventSourceAttributes:attributes]
+    }
+    
     func removeGlobalAttribute(forKey key: String) {
         globalAttributes[key] = nil
     }
@@ -71,6 +80,14 @@ actor AnalyticsClient: InternalPinpointClient {
     func removeGlobalMetric(forKey key: String, forEventType eventType: String) {
         eventTypeMetrics[eventType]?[key] = nil
     }
+    
+    func removeAllGlobalEventSourceAttributes() {
+        for key in globalEventSourceAttributes.keys {
+            removeGlobalAttribute(forKey: key)
+        }
+        globalEventSourceAttributes = [:]
+    }
+    
     
     // MARK: - Monetization events
     nonisolated func createAppleMonetizationEvent(with transaction: SKPaymentTransaction,
@@ -167,6 +184,14 @@ actor AnalyticsClient: InternalPinpointClient {
         // Add global metrics
         for (key, metric) in globalMetrics {
             event.addMetric(metric, forKey: key)
+        }
+        
+        // Add event source attributes
+        for (key, attribute) in globalEventSourceAttributes {
+            // TODO: review this
+            if let attribute = attribute as? String {
+                event.addAttribute(attribute, forKey: key)
+            }
         }
 
         try eventRecorder?.save(event)
